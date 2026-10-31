@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e8eaf0;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      grid-template-columns: 1fr 300px;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      grid-column: 1 / -1;
+      padding: 10px 20px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 1000;
+    }
+
+    .header h1 { color: #f9a825; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .header-stats {
+      margin-left: auto;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .stat { text-align: right; }
+    .stat-value { font-size: 15px; font-weight: 700; color: #f9a825; }
+    .stat-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .nav-links a { color: #4fc3f7; text-decoration: none; font-size: 13px; margin-right: 14px; }
+    .nav-links a:hover { text-decoration: underline; }
+
+    /* ── Loading banner ── */
+    .loading-banner {
+      grid-column: 1 / -1;
+      background: #1a2a1a;
+      border-bottom: 1px solid #2a4a2a;
+      padding: 8px 20px;
+      color: #66bb6a;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #66bb6a44;
+      border-top-color: #66bb6a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-banner.hidden { display: none; }
+
+    /* ── Map ── */
+    #map {
+      grid-column: 1;
+      grid-row: 3;
+      position: relative;
+    }
+
+    /* ── Facts panel (right) ── */
+    #facts-panel {
+      grid-column: 2;
+      grid-row: 3;
+      background: #12182b;
+      border-left: 1px solid #2a2a4a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #2a2a4a;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #4fc3f7;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-title::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #4fc3f7;
+      border-radius: 50%;
+    }
+
+    .panel-place-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f9a825;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .facts-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+    }
+
+    .facts-list::-webkit-scrollbar { width: 4px; }
+    .facts-list::-webkit-scrollbar-track { background: transparent; }
+    .facts-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .fact-item {
+      font-size: 12.5px;
+      color: #bcc4d0;
+      line-height: 1.55;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .fact-item:last-child { border-bottom: none; }
+
+    .fact-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: #4fc3f7;
+      font-family: monospace;
+      flex-shrink: 0;
+      margin-top: 2px;
+      min-width: 16px;
+    }
+
+    .panel-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #444;
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* ── Detail panel (bottom) ── */
+    #detail-panel {
+      grid-column: 1 / -1;
+      grid-row: 4;
+      height: 190px;
+      background: #0d1224;
+      border-top: 1px solid #2a2a4a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-toolbar {
+      padding: 6px 16px;
+      border-bottom: 1px solid #1e2840;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .detail-toolbar-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #f9a825;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-toolbar-title::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #f9a825;
+      border-radius: 50%;
+    }
+
+    .detail-meta-chips {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      font-size: 10px;
+      font-family: monospace;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .chip-id { background: rgba(79,195,247,0.1); color: #4fc3f7; border: 1px solid rgba(79,195,247,0.2); }
+    .chip-box { background: rgba(249,168,37,0.1); color: #f9a825; border: 1px solid rgba(249,168,37,0.2); }
+    .chip-vis-true { background: rgba(102,187,106,0.1); color: #66bb6a; border: 1px solid rgba(102,187,106,0.2); }
+    .chip-vis-false { background: rgba(239,83,80,0.1); color: #ef5350; border: 1px solid rgba(239,83,80,0.2); }
+    .chip-coords { background: rgba(255,255,255,0.04); color: #888; border: 1px solid rgba(255,255,255,0.07); }
+
+    .detail-body {
+      flex: 1;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 200px 1fr;
+    }
+
+    .detail-table {
+      border-right: 1px solid #1e2840;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .detail-table::-webkit-scrollbar { width: 4px; }
+    .detail-table::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .detail-row {
+      display: flex;
+      padding: 4px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-key {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #555;
+      min-width: 64px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    .detail-val {
+      font-size: 11.5px;
+      color: #bcc4d0;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    .detail-overview-col {
+      padding: 10px 16px;
+      overflow-y: auto;
+    }
+
+    .detail-overview-col::-webkit-scrollbar { width: 4px; }
+    .detail-overview-col::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .detail-overview-text {
+      font-size: 13px;
+      line-height: 1.7;
+      color: #c8ccda;
+      border-left: 3px solid #f9a825;
+      padding-left: 12px;
+    }
+
+    .detail-empty {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #333;
+      font-style: italic;
+    }
+
+    /* ── Popup (simplified) ── */
+    .leaflet-popup-content-wrapper {
+      background: #16213e;
+      border: 1px solid #2a3a5e;
+      border-radius: 8px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+      padding: 0;
+      min-width: 220px;
+    }
+
+    .leaflet-popup-tip { background: #16213e; }
+    .leaflet-popup-content { margin: 0; color: #e8eaf0; }
+
+    .popup-inner {
+      padding: 12px 16px 14px;
+    }
+
+    .popup-place-name { font-size: 14px; font-weight: 700; color: #f9a825; margin-bottom: 4px; line-height: 1.3; }
+    .popup-curio-id {
+      font-family: monospace; font-size: 11px; color: #4fc3f7;
+      background: rgba(79,195,247,0.1); padding: 2px 6px; border-radius: 4px;
+      display: inline-block; margin-bottom: 8px;
+    }
+    .popup-coords { font-size: 11px; color: #555; font-family: monospace; margin-bottom: 6px; }
+    .popup-hint { font-size: 11px; color: #444; font-style: italic; }
+    .popup-box-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(249,168,37,0.1); border: 1px solid rgba(249,168,37,0.25);
+      border-radius: 4px; padding: 2px 7px; font-size: 10px; color: #f9a825;
+      margin-bottom: 8px; margin-left: 6px; font-family: monospace;
+    }
+
+    /* ── Box popup ── */
+    .box-popup-inner { padding: 12px 14px; }
+    .box-popup-title { font-size: 14px; font-weight: 700; color: #f9a825; margin-bottom: 4px; }
+    .box-popup-coords { font-size: 10px; color: #555; font-family: monospace; margin-bottom: 8px; line-height: 1.6; }
+    .box-popup-count { font-size: 12px; color: #66bb6a; font-weight: 600; margin-bottom: 8px; }
+
+    .box-place-list { list-style: none; padding: 0; margin: 0; max-height: 180px; overflow-y: auto; }
+    .box-place-list::-webkit-scrollbar { width: 4px; }
+    .box-place-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+    .box-place-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+    }
+    .box-place-item:last-child { border-bottom: none; }
+    .box-place-item:hover .box-place-name { color: #f9a825; }
+
+    .box-place-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .box-place-dot.visible { background: #66bb6a; }
+    .box-place-dot.hidden { background: #ef5350; }
+
+    .box-place-name { font-size: 12px; color: #c8ccda; transition: color 0.15s; }
+    .box-place-id { margin-left: auto; font-size: 10px; color: #4fc3f7; font-family: monospace; flex-shrink: 0; }
+
+    /* ── Legend ── */
+    .map-legend {
+      position: absolute; bottom: 14px; left: 12px; z-index: 900;
+      background: rgba(22,33,62,0.92); border: 1px solid #2a3a5e;
+      border-radius: 8px; padding: 9px 13px; font-size: 11px;
+      backdrop-filter: blur(8px);
+    }
+
+    .legend-title { font-weight: 700; color: #f9a825; margin-bottom: 7px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: #bcc4d0; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── Cluster bubbles ── */
+    .marker-cluster-small,
+    .marker-cluster-medium,
+    .marker-cluster-large { background: transparent !important; }
+    .marker-cluster-small div,
+    .marker-cluster-medium div,
+    .marker-cluster-large div { background: transparent !important; }
+
+    .cluster-bubble {
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-weight: 700; color: #fff; line-height: 1;
+      border: 2px solid rgba(255,255,255,0.25); box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .cluster-sm  { width:32px;height:32px;font-size:11px;background:rgba(79,195,247,0.82); }
+    .cluster-md  { width:40px;height:40px;font-size:12px;background:rgba(249,168,37,0.85); }
+    .cluster-lg  { width:50px;height:50px;font-size:13px;background:rgba(239,83,80,0.88);  }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Map Explorer</h1>
+  <div class="nav-links">
+    <a href="/admin/places">Places</a>
+    <a href="/admin/map">Add Place</a>
+    <a href="/admin/curio">Edit Curio</a>
+    <a href="/admin/graph">Graph</a>
+  </div>
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-value" id="stat-places">—</div>
+      <div class="stat-label">Places</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-boxes">—</div>
+      <div class="stat-label">Boxes</div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-banner" id="loading-banner">
+  <div class="spinner"></div>
+  <span>Loading places from database...</span>
+</div>
+
+<div id="map">
+  <div class="map-legend">
+    <div class="legend-title">Legend</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(249,168,37,0.18);border:1.5px solid rgba(249,168,37,0.6);"></div>
+      Box boundary (zoom 13+)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#66bb6a;border-radius:50%;"></div>
+      Visible place
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#ef5350;border-radius:50%;"></div>
+      Hidden place
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(79,195,247,0.82);border-radius:50%;"></div>
+      Cluster (small)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(249,168,37,0.85);border-radius:50%;"></div>
+      Cluster (medium)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(239,83,80,0.88);border-radius:50%;"></div>
+      Cluster (large)
+    </div>
+  </div>
+</div>
+
+<!-- Facts panel (right) -->
+<div id="facts-panel">
+  <div class="panel-header">
+    <div class="panel-title">Ten Facts</div>
+    <div class="panel-place-name" id="facts-place-name" style="display:none"></div>
+  </div>
+  <div id="facts-body" class="facts-list">
+    <div class="panel-empty">Click a place on the map to see its facts</div>
+  </div>
+</div>
+
+<!-- Detail panel (bottom) -->
+<div id="detail-panel">
+  <div class="detail-toolbar">
+    <div class="detail-toolbar-title">Overview</div>
+    <div class="detail-meta-chips" id="detail-chips"></div>
+  </div>
+  <div class="detail-body" id="detail-body">
+    <div class="detail-empty">Click a place on the map to see its overview</div>
+  </div>
+</div>
+
+<script>
+  const map = L.map('map', {
+    center: [51.5, -0.1],
+    zoom: 12,
+    zoomControl: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  }).addTo(map);
+
+  const BOX_ZOOM_THRESHOLD = 13;
+  const boxLayerGroup = L.layerGroup().addTo(map);
+
+  const clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    disableClusteringAtZoom: 16,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction(cluster) {
+      const count = cluster.getChildCount();
+      let cls = 'cluster-sm';
+      if (count >= 100) cls = 'cluster-lg';
+      else if (count >= 20)  cls = 'cluster-md';
+      return L.divIcon({
+        className: '',
+        html: `<div class="cluster-bubble ${cls}">${count}</div>`,
+        iconSize: [50, 50],
+        iconAnchor: [25, 25],
+      });
+    },
+  });
+  clusterGroup.addTo(map);
+
+  function updateBoxVisibility() {
+    const zoom = map.getZoom();
+    if (zoom >= BOX_ZOOM_THRESHOLD) {
+      if (!map.hasLayer(boxLayerGroup)) map.addLayer(boxLayerGroup);
+    } else {
+      if (map.hasLayer(boxLayerGroup)) map.removeLayer(boxLayerGroup);
+    }
+  }
+  map.on('zoomend', updateBoxVisibility);
+
+  function makeMarkerIcon(visible) {
+    const color  = visible ? '#66bb6a' : '#ef5350';
+    const border = visible ? '#4caf50' : '#c62828';
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        width:10px;height:10px;border-radius:50%;
+        background:${color};border:2px solid ${border};
+        box-shadow:0 0 4px rgba(0,0,0,0.6);
+      "></div>`,
+      iconSize: [10, 10],
+      iconAnchor: [5, 5],
+    });
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Side & bottom panels ──────────────────────────────────────────
+
+  function setDetailLoading(place) {
+    const chips = document.getElementById('detail-chips');
+    chips.innerHTML = `
+      <span class="chip chip-id">${escHtml(place.curio_id || '')}</span>
+      ${place._boxId != null ? `<span class="chip chip-box">Box ${place._boxId}</span>` : ''}
+      <span class="chip ${place.visible_flag ? 'chip-vis-true' : 'chip-vis-false'}">${place.visible_flag ? 'Visible' : 'Hidden'}</span>
+      <span class="chip chip-coords">${place.lat.toFixed(6)}, ${place.lon.toFixed(6)}</span>
+    `;
+
+    document.getElementById('detail-body').innerHTML = `
+      <div class="detail-table">
+        <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${escHtml(place.name || '—')}</span></div>
+        <div class="detail-row"><span class="detail-key">ID</span><span class="detail-val">${escHtml(place.curio_id || '—')}</span></div>
+        <div class="detail-row"><span class="detail-key">Box</span><span class="detail-val">${place._boxId != null ? place._boxId : '—'}</span></div>
+        <div class="detail-row"><span class="detail-key">Lat</span><span class="detail-val">${place.lat.toFixed(6)}</span></div>
+        <div class="detail-row"><span class="detail-key">Lon</span><span class="detail-val">${place.lon.toFixed(6)}</span></div>
+        <div class="detail-row"><span class="detail-key">Visible</span><span class="detail-val" style="color:${place.visible_flag ? '#66bb6a' : '#ef5350'}">${place.visible_flag ? 'Yes' : 'No'}</span></div>
+      </div>
+      <div class="detail-overview-col" id="overview-text-col">
+        <div style="font-size:12px;color:#444;font-style:italic">Loading overview...</div>
+      </div>
+    `;
+
+    const factsName = document.getElementById('facts-place-name');
+    factsName.textContent = place.name || place.curio_id;
+    factsName.style.display = 'block';
+    document.getElementById('facts-body').innerHTML = `
+      <div style="font-size:12px;color:#444;font-style:italic;padding:8px 0">Loading facts...</div>
+    `;
+  }
+
+  function setDetailContent(overview, facts) {
+    const overviewCol = document.getElementById('overview-text-col');
+    if (overviewCol) {
+      if (overview && overview.trim()) {
+        overviewCol.innerHTML = `<div class="detail-overview-text">${escHtml(overview.trim())}</div>`;
+      } else {
+        overviewCol.innerHTML = `<div style="font-size:12px;color:#444;font-style:italic">No overview written yet.</div>`;
+      }
+    }
+
+    const factsBody = document.getElementById('facts-body');
+    if (facts && facts.length > 0) {
+      factsBody.innerHTML = facts.map((f, i) => `
+        <div class="fact-item">
+          <span class="fact-num">${i + 1}.</span>
+          <span>${escHtml(f)}</span>
+        </div>
+      `).join('');
+    } else {
+      factsBody.innerHTML = `<div class="panel-empty">No facts recorded yet.</div>`;
+    }
+  }
+
+  async function loadPlaceDetail(curioId, place) {
+    setDetailLoading(place);
+    try {
+      const res = await fetch(`/api/map/places/${encodeURIComponent(curioId)}/detail`);
+      const json = await res.json();
+      setDetailContent(json.detail_overview || '', json.facts || []);
+    } catch (e) {
+      setDetailContent('', []);
+    }
+  }
+
+  // ── Popups ────────────────────────────────────────────────────────
+
+  function openPlacePopup(place, latlng) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'popup-inner';
+    wrapper.innerHTML = `
+      <div class="popup-place-name">${escHtml(place.name || 'Unnamed')}</div>
+      <span class="popup-curio-id">${escHtml(place.curio_id || '')}</span>${place._boxId != null ? `<span class="popup-box-badge">Box ${place._boxId}</span>` : ''}<br>
+      <div class="popup-coords" style="margin-top:6px">${place.lat.toFixed(6)}, ${place.lon.toFixed(6)}</div>
+      <div class="popup-hint" style="margin-top:6px">Details loaded below</div>
+    `;
+
+    L.popup({ maxWidth: 280, minWidth: 200, closeButton: true })
+      .setLatLng(latlng)
+      .setContent(wrapper)
+      .openOn(map);
+
+    loadPlaceDetail(place.curio_id, place);
+  }
+
+  function openBoxPopup(box, latlng) {
+    const b = box.bounds;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'box-popup-inner';
+
+    const placeItems = box.places.map(p => `
+      <li class="box-place-item" data-curio="${escHtml(p.curio_id)}" data-lat="${p.lat}" data-lon="${p.lon}">
+        <span class="box-place-dot ${p.visible_flag ? 'visible' : 'hidden'}"></span>
+        <span class="box-place-name">${escHtml(p.name || 'Unnamed')}</span>
+        <span class="box-place-id">${escHtml(p.curio_id || '')}</span>
+      </li>
+    `).join('');
+
+    wrapper.innerHTML = `
+      <div class="box-popup-title">Box ${box.boxId}</div>
+      <div class="box-popup-coords">
+        N ${b.latNorth.toFixed(5)} &nbsp;S ${b.latSouth.toFixed(5)}<br>
+        W ${b.lonWest.toFixed(5)} &nbsp;E ${b.lonEast.toFixed(5)}
+      </div>
+      <div class="box-popup-count">${box.places.length} place${box.places.length !== 1 ? 's' : ''}</div>
+      <ul class="box-place-list">${placeItems}</ul>
+    `;
+
+    L.popup({ maxWidth: 320, minWidth: 260, closeButton: true })
+      .setLatLng(latlng)
+      .setContent(wrapper)
+      .openOn(map);
+
+    wrapper.querySelectorAll('.box-place-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const curioId = el.dataset.curio;
+        const lat = parseFloat(el.dataset.lat);
+        const lon = parseFloat(el.dataset.lon);
+        const place = box.places.find(p => p.curio_id === curioId);
+        if (place) {
+          place._boxId = box.boxId;
+          openPlacePopup(place, L.latLng(lat, lon));
+        }
+      });
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────
+
+  function renderBoxes(boxes) {
+    boxLayerGroup.clearLayers();
+    clusterGroup.clearLayers();
+
+    const bounds = [];
+
+    boxes.forEach(box => {
+      const b = box.bounds;
+      const sw = [b.latSouth, b.lonWest];
+      const ne = [b.latNorth, b.lonEast];
+
+      const rect = L.rectangle([sw, ne], {
+        color: 'rgba(249,168,37,0.7)',
+        weight: 1,
+        fillColor: 'rgba(249,168,37,0.06)',
+        fillOpacity: 1,
+        interactive: true,
+      });
+
+      rect.on('click', e => {
+        openBoxPopup(box, e.latlng);
+        L.DomEvent.stopPropagation(e);
+      });
+
+      boxLayerGroup.addLayer(rect);
+
+      box.places.forEach(place => {
+        place._boxId = box.boxId;
+        const latlng = L.latLng(place.lat, place.lon);
+        const marker = L.marker(latlng, {
+          icon: makeMarkerIcon(place.visible_flag),
+          zIndexOffset: 100,
+        });
+
+        marker.on('click', e => {
+          openPlacePopup(place, latlng);
+          L.DomEvent.stopPropagation(e);
+        });
+
+        clusterGroup.addLayer(marker);
+        bounds.push([place.lat, place.lon]);
+      });
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }
+
+    updateBoxVisibility();
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch('/api/map/places');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const boxes = json.boxes || [];
+
+      document.getElementById('stat-places').textContent = (json.totalPlaces || 0).toLocaleString();
+      document.getElementById('stat-boxes').textContent = boxes.length.toLocaleString();
+
+      renderBoxes(boxes);
+    } catch (e) {
+      console.error('Failed to load data:', e);
+      const banner = document.getElementById('loading-banner');
+      banner.style.background = '#2a1a1a';
+      banner.style.borderBottomColor = '#4a2a2a';
+      banner.style.color = '#ef5350';
+      banner.querySelector('span').textContent = 'Error loading data. Check the console.';
+      return;
+    }
+
+    document.getElementById('loading-banner').classList.add('hidden');
+  }
+
+  loadData();
+</script>
+</body>
+</html>

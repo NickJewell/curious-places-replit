@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Places Admin - Edit Records</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      margin-bottom: 10px;
+      color: #f9a825;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .nav-links {
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .nav-links a {
+      color: #f9a825;
+      margin-right: 16px;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover { text-decoration: underline; }
+    
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    button {
+      background: #f9a825;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #ffc107;
+    }
+    
+    button:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+    
+    .loading {
+      color: #888;
+      font-style: italic;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #16213e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    
+    th {
+      background: #0f3460;
+      color: #f9a825;
+      font-weight: 600;
+    }
+    
+    tr:hover {
+      background: #1f3a60;
+    }
+    
+    .curio-id {
+      font-family: monospace;
+      font-size: 12px;
+      color: #aaa;
+    }
+    
+    .plus-code {
+      font-family: monospace;
+      font-size: 12px;
+      color: #4fc3f7;
+    }
+    
+    .name-cell {
+      max-width: 250px;
+    }
+    
+    .overview-cell {
+      min-width: 300px;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 8px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #eee;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    .actions-cell {
+      width: 100px;
+    }
+    
+    .save-btn {
+      background: #4caf50;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .save-btn:hover {
+      background: #66bb6a;
+    }
+    
+    .save-btn.saving {
+      background: #555;
+    }
+    
+    .saved-indicator {
+      color: #4caf50;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    
+    .error {
+      color: #ef5350;
+      padding: 10px;
+      background: rgba(239, 83, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    
+    .stats {
+      color: #888;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Places Admin</h1>
+  <p class="subtitle">Edit places with missing detail-overview (sorted by curio-id number ascending)</p>
+  <div class="nav-links">
+    <a href="/admin/map">Add Place</a>
+    <a href="/admin/curio">Curio Editor</a>
+    <a href="/admin/map-explorer">Map Explorer</a>
+    <a href="/admin/graph">Graph</a>
+  </div>
+  
+  <div class="controls">
+    <button id="refreshBtn" onclick="loadPlaces()">Refresh</button>
+    <span id="stats" class="stats"></span>
+  </div>
+  
+  <div id="error" class="error" style="display: none;"></div>
+  <div id="loading" class="loading">Loading places...</div>
+  <div id="content" style="display: none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Curio ID</th>
+          <th>Name</th>
+          <th>Plus Code</th>
+          <th class="overview-cell">Detail Overview</th>
+          <th class="actions-cell">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="placesBody">
+      </tbody>
+    </table>
+  </div>
+  <div id="empty" class="empty-state" style="display: none;">
+    No places found with missing detail-overview. Great job!
+  </div>
+
+  <script>
+    let places = [];
+    
+    async function loadPlaces() {
+      const loading = document.getElementById('loading');
+      const content = document.getElementById('content');
+      const empty = document.getElementById('empty');
+      const error = document.getElementById('error');
+      const stats = document.getElementById('stats');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      loading.style.display = 'block';
+      content.style.display = 'none';
+      empty.style.display = 'none';
+      error.style.display = 'none';
+      refreshBtn.disabled = true;
+      
+      try {
+        const response = await fetch('/api/admin/places/needs-overview');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        places = data.places || [];
+        
+        stats.textContent = `Showing ${places.length} of ${data.total || places.length} places needing overview`;
+        
+        if (places.length === 0) {
+          empty.style.display = 'block';
+        } else {
+          renderPlaces();
+          content.style.display = 'block';
+        }
+      } catch (err) {
+        error.textContent = `Error loading places: ${err.message}`;
+        error.style.display = 'block';
+      } finally {
+        loading.style.display = 'none';
+        refreshBtn.disabled = false;
+      }
+    }
+    
+    function renderPlaces() {
+      const tbody = document.getElementById('placesBody');
+      tbody.innerHTML = places.map((place, index) => `
+        <tr id="row-${index}">
+          <td class="curio-id">${escapeHtml(place['curio-id'] || '-')}</td>
+          <td class="name-cell">${escapeHtml(place.name || '-')}</td>
+          <td class="plus-code">${escapeHtml(place['plus-code'] || '-')}</td>
+          <td class="overview-cell">
+            <textarea 
+              id="overview-${index}" 
+              placeholder="Enter detail overview..."
+              oninput="markDirty(${index})"
+            >${escapeHtml(place['detail-overview'] || '')}</textarea>
+          </td>
+          <td class="actions-cell">
+            <button 
+              id="save-${index}" 
+              class="save-btn" 
+              onclick="savePlaces(${index})"
+            >Save</button>
+            <span id="saved-${index}" class="saved-indicator" style="display: none;">Saved!</span>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+    
+    function markDirty(index) {
+      const savedIndicator = document.getElementById(`saved-${index}`);
+      if (savedIndicator) {
+        savedIndicator.style.display = 'none';
+      }
+    }
+    
+    async function savePlaces(index) {
+      const place = places[index];
+      const textarea = document.getElementById(`overview-${index}`);
+      const saveBtn = document.getElementById(`save-${index}`);
+      const savedIndicator = document.getElementById(`saved-${index}`);
+      const error = document.getElementById('error');
+      
+      const newOverview = textarea.value.trim();
+      
+      saveBtn.disabled = true;
+      saveBtn.classList.add('saving');
+      saveBtn.textContent = 'Saving...';
+      error.style.display = 'none';
+      
+      try {
+        const response = await fetch(`/api/admin/places/${place['places-id']}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            'detail-overview': newOverview || null
+          }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        places[index]['detail-overview'] = newOverview;
+        savedIndicator.style.display = 'inline';
+        setTimeout(() => {
+          savedIndicator.style.display = 'none';
+        }, 2000);
+      } catch (err) {
+        error.textContent = `Error saving: ${err.message}`;
+        error.style.display = 'block';
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('saving');
+        saveBtn.textContent = 'Save';
+      }
+    }
+    
+    // Load places on page load
+    loadPlaces();
+  </script>
+</body>
+</html>

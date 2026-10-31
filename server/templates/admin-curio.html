@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Curio - Admin</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      margin-bottom: 10px;
+      color: #f9a825;
+    }
+    
+    h2 {
+      color: #f9a825;
+      margin: 30px 0 15px;
+      font-size: 18px;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .search-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    
+    .search-prefix {
+      background: #0f3460;
+      color: #f9a825;
+      padding: 10px 15px;
+      border-radius: 6px 0 0 6px;
+      font-family: monospace;
+      font-weight: 600;
+    }
+    
+    input[type="text"] {
+      padding: 10px 15px;
+      border: 1px solid #444;
+      border-radius: 0 6px 6px 0;
+      background: #16213e;
+      color: #eee;
+      font-family: monospace;
+      font-size: 14px;
+      width: 150px;
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    button {
+      background: #f9a825;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #ffc107;
+    }
+    
+    button:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+    
+    .save-btn {
+      background: #4caf50;
+    }
+    
+    .save-btn:hover {
+      background: #66bb6a;
+    }
+    
+    .add-btn {
+      background: #2196f3;
+      font-size: 13px;
+      padding: 8px 16px;
+    }
+    
+    .add-btn:hover {
+      background: #42a5f5;
+    }
+    
+    .delete-btn {
+      background: #ef5350;
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    
+    .delete-btn:hover {
+      background: #f44336;
+    }
+    
+    .loading {
+      color: #888;
+      font-style: italic;
+      padding: 20px;
+    }
+    
+    .error {
+      color: #ef5350;
+      padding: 10px;
+      background: rgba(239, 83, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .success {
+      color: #4caf50;
+      padding: 10px;
+      background: rgba(76, 175, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .place-card {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .place-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+    
+    .place-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .place-meta {
+      color: #888;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+    
+    .place-meta span {
+      margin-right: 15px;
+    }
+    
+    .field-group {
+      margin-bottom: 20px;
+    }
+    
+    .field-label {
+      display: block;
+      color: #f9a825;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #1a1a2e;
+      color: #eee;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    .facts-section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .facts-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .fact-item {
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border: 1px solid #333;
+    }
+    
+    .fact-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .fact-id {
+      font-family: monospace;
+      color: #888;
+      font-size: 12px;
+    }
+    
+    .saved-indicator {
+      color: #4caf50;
+      font-weight: 600;
+    }
+    
+    .fact-textarea {
+      min-height: 80px;
+    }
+    
+    .empty-state {
+      color: #888;
+      font-style: italic;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .back-link {
+      color: #4fc3f7;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    
+    #initialState {
+      color: #888;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .import-section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #0f3460;
+    }
+    
+    .import-section h2 {
+      margin-top: 0;
+    }
+    
+    .json-textarea {
+      min-height: 200px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre;
+    }
+    
+    .import-btn {
+      background: #9c27b0;
+    }
+    
+    .import-btn:hover {
+      background: #ab47bc;
+    }
+    
+    .import-results {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(76, 175, 80, 0.1);
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    
+    .import-results.error {
+      background: rgba(239, 83, 80, 0.1);
+    }
+    
+    .divider {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 30px 0;
+    }
+  </style>
+</head>
+<body>
+  <a href="/admin/places" class="back-link">&larr; Back to Places List</a>
+  <a href="/admin/graph" class="back-link">Graph</a>
+  
+  <h1>Edit Curio</h1>
+  <p class="subtitle">Search for a curio by ID to edit its detail-overview and facts</p>
+  
+  <div class="search-container">
+    <span class="search-prefix">CURIO-</span>
+    <input type="text" id="curioIdInput" placeholder="12345" />
+    <button id="searchBtn" onclick="searchCurio()">Search</button>
+  </div>
+  
+  <div id="error" class="error" style="display: none;"></div>
+  <div id="success" class="success" style="display: none;"></div>
+  <div id="loading" class="loading" style="display: none;">Loading curio...</div>
+  
+  <!-- JSON Bulk Import Section -->
+  <div class="import-section">
+    <h2>JSON Bulk Import</h2>
+    <p class="subtitle">Paste a JSON object to bulk update detail-overview and facts for a curio</p>
+    
+    <div class="search-container">
+      <span class="search-prefix">CURIO-</span>
+      <input type="text" id="importCurioIdInput" placeholder="12345" />
+    </div>
+    
+    <div class="field-group">
+      <label class="field-label">JSON Data</label>
+      <textarea id="jsonImportData" class="json-textarea" placeholder='{
+  "DETAIL-OVERVIEW": "Your overview text...",
+  "FACTS": [
+    "FACT-01: First fact...",
+    "FACT-02: Second fact...",
+    ...
+  ]
+}'></textarea>
+    </div>
+    
+    <div class="actions-row">
+      <button class="import-btn" id="importBtn" onclick="bulkImport()">Import JSON</button>
+    </div>
+    
+    <div id="importResults" class="import-results" style="display: none;"></div>
+  </div>
+  
+  <hr class="divider" />
+  
+  <h2>Manual Editor</h2>
+  <p class="subtitle">Search for a curio by ID to manually edit its detail-overview and facts</p>
+  
+  <div id="initialState">
+    Enter a curio ID number above to search and edit
+  </div>
+  
+  <div id="content" style="display: none;">
+    <div class="place-card">
+      <div class="place-header">
+        <div>
+          <div class="place-name" id="placeName"></div>
+          <div class="place-meta">
+            <span id="curioIdDisplay"></span>
+            <span id="plusCodeDisplay"></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="field-group">
+        <label class="field-label">Detail Overview</label>
+        <textarea id="detailOverview" placeholder="Enter detail overview..."></textarea>
+      </div>
+      
+      <div class="actions-row">
+        <button class="save-btn" id="saveOverviewBtn" onclick="saveOverview()">Save Overview</button>
+      </div>
+    </div>
+    
+    <div class="facts-section">
+      <div class="facts-header">
+        <h2 style="margin: 0;">Facts</h2>
+        <button class="add-btn" onclick="addNewFact()">+ Add Fact</button>
+      </div>
+      
+      <div id="factsContainer">
+        <div class="empty-state">No facts found for this curio</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPlace = null;
+    let currentFacts = [];
+    let placesId = null;
+    
+    document.getElementById('curioIdInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchCurio();
+      }
+    });
+    
+    async function searchCurio() {
+      const input = document.getElementById('curioIdInput');
+      const curioNumber = input.value.trim();
+      
+      if (!curioNumber) {
+        showError('Please enter a curio ID number');
+        return;
+      }
+      
+      const curioId = `CURIO-${curioNumber}`;
+      
+      // Sync with bulk import section
+      document.getElementById('importCurioIdInput').value = curioNumber;
+      document.getElementById('jsonImportData').value = '';
+      document.getElementById('importResults').style.display = 'none';
+      
+      hideMessages();
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('initialState').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      
+      try {
+        const response = await fetch(`/api/admin/curio/${encodeURIComponent(curioId)}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error(`Curio "${curioId}" not found`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        currentPlace = data.place;
+        currentFacts = data.facts || [];
+        placesId = data.place.places_id || data.place.id || data.place['places-id'];
+        
+        renderPlace();
+        renderFacts();
+        
+        document.getElementById('content').style.display = 'block';
+      } catch (err) {
+        showError(err.message);
+        document.getElementById('initialState').style.display = 'block';
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+    
+    function renderPlace() {
+      document.getElementById('placeName').textContent = currentPlace.name || 'Unnamed Place';
+      document.getElementById('curioIdDisplay').textContent = currentPlace['curio_id'] || '-';
+      document.getElementById('plusCodeDisplay').textContent = currentPlace['plus_code'] || '';
+      document.getElementById('detailOverview').value = currentPlace['detail_overview'] || '';
+    }
+    
+    function renderFacts() {
+      const container = document.getElementById('factsContainer');
+      
+      if (currentFacts.length === 0) {
+        container.innerHTML = '<div class="empty-state">No facts found for this curio</div>';
+        return;
+      }
+      
+      container.innerHTML = currentFacts.map((fact, index) => `
+        <div class="fact-item" id="fact-${index}">
+          <div class="fact-header">
+            <span class="fact-id">Fact #${index + 1}${fact.id ? ` (ID: ${fact.id})` : ' (New)'}<span id="saved-indicator-${index}" class="saved-indicator" style="display: none;"> - saved!</span></span>
+            <button class="delete-btn" onclick="deleteFact(${index})">Delete</button>
+          </div>
+          <textarea 
+            class="fact-textarea" 
+            id="fact-text-${index}"
+            placeholder="Enter fact..."
+            oninput="hideSavedIndicator(${index})"
+          >${escapeHtml(fact['fact_info'] || '')}</textarea>
+          <div class="actions-row">
+            <button class="save-btn" id="save-btn-${index}" onclick="saveFact(${index})">Save Fact</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+    
+    function hideSavedIndicator(index) {
+      const indicator = document.getElementById(`saved-indicator-${index}`);
+      if (indicator) {
+        indicator.style.display = 'none';
+      }
+    }
+    
+    async function saveOverview() {
+      const btn = document.getElementById('saveOverviewBtn');
+      const overview = document.getElementById('detailOverview').value.trim();
+      
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      hideMessages();
+      
+      try {
+        const response = await fetch(`/api/admin/places/${placesId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 'detail_overview': overview || null })
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to save');
+        }
+        
+        currentPlace['detail_overview'] = overview;
+        showSuccess('Overview saved successfully!');
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Overview';
+      }
+    }
+    
+    function addNewFact() {
+      currentFacts.push({
+        id: null,
+        'curio_id': currentPlace['curio_id'],
+        'fact_info': ''
+      });
+      renderFacts();
+      
+      const newIndex = currentFacts.length - 1;
+      document.getElementById(`fact-text-${newIndex}`).focus();
+    }
+    
+    async function saveFact(index) {
+      const fact = currentFacts[index];
+      const textarea = document.getElementById(`fact-text-${index}`);
+      const factText = textarea.value.trim();
+      
+      if (!factText) {
+        showError('Fact text cannot be empty');
+        return;
+      }
+      
+      hideMessages();
+      
+      try {
+        if (fact.id) {
+          const response = await fetch(`/api/admin/facts/${fact.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fact: factText })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update fact');
+          }
+        } else {
+          const response = await fetch('/api/admin/facts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              'curio_id': currentPlace['curio_id'],
+              fact: factText
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to create fact');
+          }
+          
+          const data = await response.json();
+          currentFacts[index] = data.fact;
+        }
+        
+        currentFacts[index]['fact_info'] = factText;
+        
+        // Show saved indicator inline
+        const indicator = document.getElementById(`saved-indicator-${index}`);
+        if (indicator) {
+          indicator.style.display = 'inline';
+        }
+        
+        // Also show the success banner
+        showSuccess('Fact saved successfully!');
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+    
+    async function deleteFact(index) {
+      const fact = currentFacts[index];
+      
+      if (!confirm('Are you sure you want to delete this fact?')) {
+        return;
+      }
+      
+      hideMessages();
+      
+      try {
+        if (fact.id) {
+          const response = await fetch(`/api/admin/facts/${fact.id}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to delete fact');
+          }
+        }
+        
+        currentFacts.splice(index, 1);
+        renderFacts();
+        showSuccess('Fact deleted');
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+    
+    function showError(message) {
+      const el = document.getElementById('error');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('success').style.display = 'none';
+    }
+    
+    function showSuccess(message) {
+      const el = document.getElementById('success');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 3000);
+    }
+    
+    function hideMessages() {
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('success').style.display = 'none';
+    }
+    
+    // Bulk Import Function
+    async function bulkImport() {
+      const curioNumber = document.getElementById('importCurioIdInput').value.trim();
+      const jsonText = document.getElementById('jsonImportData').value.trim();
+      const resultsDiv = document.getElementById('importResults');
+      const btn = document.getElementById('importBtn');
+      
+      resultsDiv.style.display = 'none';
+      resultsDiv.className = 'import-results';
+      
+      if (!curioNumber) {
+        resultsDiv.textContent = 'Error: Please enter a CURIO ID number';
+        resultsDiv.className = 'import-results error';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+      
+      if (!jsonText) {
+        resultsDiv.textContent = 'Error: Please paste JSON data';
+        resultsDiv.className = 'import-results error';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+      
+      let jsonData;
+      try {
+        jsonData = JSON.parse(jsonText);
+      } catch (e) {
+        resultsDiv.textContent = 'Error: Invalid JSON format - ' + e.message;
+        resultsDiv.className = 'import-results error';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+      
+      const curioId = `CURIO-${curioNumber}`;
+      btn.disabled = true;
+      btn.textContent = 'Importing...';
+      
+      const results = [];
+      const timestamp = new Date().toLocaleString();
+      results.push(`[${timestamp}]`);
+      results.push(`Starting import for ${curioId}...`);
+      results.push('');
+      
+      try {
+        // First, verify the curio exists
+        const checkResponse = await fetch(`/api/admin/curio/${encodeURIComponent(curioId)}`);
+        if (!checkResponse.ok) {
+          throw new Error(`Curio "${curioId}" not found in database`);
+        }
+        const curioData = await checkResponse.json();
+        results.push(`Found: ${curioData.place.name}`);
+        results.push('');
+        
+        // Update detail_overview if provided
+        if (jsonData['DETAIL-OVERVIEW']) {
+          results.push('Updating detail_overview...');
+          // Try multiple possible primary key column names
+          const placeId = curioData.place.places_id || curioData.place.id || curioData.place.place_id;
+          if (!placeId) {
+            results.push('  [ERROR] Could not find place ID. Keys found: ' + Object.keys(curioData.place).join(', '));
+          } else {
+            const overviewResponse = await fetch(`/api/admin/places/${placeId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 'detail_overview': jsonData['DETAIL-OVERVIEW'] })
+            });
+          
+            if (overviewResponse.ok) {
+              results.push('  [OK] Detail overview updated');
+            } else {
+              results.push('  [FAILED] Could not update detail overview');
+            }
+          }
+          results.push('');
+        }
+        
+        // Process facts if provided
+        if (jsonData['FACTS'] && Array.isArray(jsonData['FACTS'])) {
+          results.push(`Processing ${jsonData['FACTS'].length} facts...`);
+          
+          // Delete existing facts for this curio first
+          const existingFacts = curioData.facts || [];
+          for (const fact of existingFacts) {
+            if (fact.id) {
+              await fetch(`/api/admin/facts/${fact.id}`, { method: 'DELETE' });
+            }
+          }
+          results.push(`  Cleared ${existingFacts.length} existing facts`);
+          
+          // Insert new facts
+          let successCount = 0;
+          for (let i = 0; i < Math.min(jsonData['FACTS'].length, 10); i++) {
+            let factItem = jsonData['FACTS'][i];
+            let factText = '';
+            
+            // Handle both string and object formats
+            if (typeof factItem === 'string') {
+              factText = factItem;
+            } else if (factItem && typeof factItem === 'object') {
+              // Try common property names: fact, fact_info, text, content
+              factText = factItem.fact || factItem.fact_info || factItem.text || factItem.content || '';
+            }
+            
+            if (!factText) {
+              results.push(`  [SKIP] Fact ${i + 1} - empty or invalid format`);
+              continue;
+            }
+            
+            // Strip "FACT-XX:" prefix if present (handles FACT-01, FACT-1, etc.)
+            factText = factText.replace(/^FACT-\d+:\s*/i, '').trim();
+            
+            const response = await fetch('/api/admin/facts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                'curio_id': curioId,
+                fact: factText
+              })
+            });
+            
+            if (response.ok) {
+              successCount++;
+              results.push(`  [OK] Fact ${i + 1} inserted`);
+            } else {
+              results.push(`  [FAILED] Fact ${i + 1}`);
+            }
+          }
+          
+          results.push('');
+          results.push(`Inserted ${successCount}/${Math.min(jsonData['FACTS'].length, 10)} facts`);
+        }
+        
+        results.push('');
+        results.push('Import complete!');
+        resultsDiv.className = 'import-results';
+        
+      } catch (err) {
+        results.push('');
+        results.push('ERROR: ' + err.message);
+        resultsDiv.className = 'import-results error';
+      }
+      
+      resultsDiv.textContent = results.join('\n');
+      resultsDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Import JSON';
+    }
+  </script>
+</body>
+</html>

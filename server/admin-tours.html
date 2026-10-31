@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Tour Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #111; color: #eee; padding: 20px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 20px; color: #fff; }
+  h2 { font-size: 18px; margin-bottom: 12px; color: #ccc; }
+  .section { background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
+  label { display: block; font-size: 13px; color: #999; margin-bottom: 4px; margin-top: 12px; }
+  label:first-child { margin-top: 0; }
+  input, textarea, select { width: 100%; padding: 10px 12px; background: #222; border: 1px solid #444; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+  input:focus, textarea:focus { border-color: #6C63FF; }
+  textarea { resize: vertical; min-height: 60px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #6C63FF; color: #fff; }
+  .btn-success { background: #4CAF50; color: #fff; }
+  .btn-danger { background: #E53935; color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .tour-card { background: #222; border-radius: 10px; padding: 16px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; transition: border-color 0.2s; }
+  .tour-card:hover { border-color: #6C63FF; }
+  .tour-card.active { border-color: #6C63FF; background: #252540; }
+  .tour-card h3 { font-size: 16px; color: #fff; margin-bottom: 4px; }
+  .tour-card .meta { font-size: 12px; color: #888; }
+  .tour-card .meta span { margin-right: 12px; }
+  .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #222; border-radius: 8px; margin-bottom: 6px; border: 1px solid #333; }
+  .item-row .order { font-size: 13px; color: #888; min-width: 24px; font-weight: 700; }
+  .item-row .name { flex: 1; font-size: 14px; color: #fff; }
+  .item-row .curio-id { font-size: 11px; color: #6C63FF; font-family: monospace; }
+  .item-row .actions { display: flex; gap: 4px; }
+  .search-results { background: #222; border: 1px solid #444; border-radius: 8px; max-height: 200px; overflow-y: auto; margin-top: 4px; }
+  .search-results .result-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #333; }
+  .search-results .result-item:hover { background: #333; }
+  .search-results .result-item:last-child { border-bottom: none; }
+  .search-results .result-item .rid { color: #6C63FF; font-family: monospace; font-size: 11px; margin-right: 8px; }
+  .empty { color: #666; font-size: 14px; padding: 20px; text-align: center; }
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; font-size: 14px; color: #fff; z-index: 100; animation: fadeIn 0.3s; }
+  .toast.success { background: #4CAF50; }
+  .toast.error { background: #E53935; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .move-btn { background: none; border: 1px solid #555; color: #aaa; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .move-btn:hover { border-color: #888; color: #fff; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-purple { background: rgba(108,99,255,0.2); color: #6C63FF; }
+  .badge-gold { background: rgba(212,160,23,0.2); color: #D4A017; }
+</style>
+</head>
+<body>
+
+<div style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+  <h1 style="margin-bottom:0;">Tour Manager</h1>
+  <nav style="display:flex;flex-wrap:wrap;gap:0;">
+    <a href="/admin/places" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Places</a>
+    <a href="/admin/map" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Add Place</a>
+    <a href="/admin/curio" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Edit Curio</a>
+    <a href="/admin/extract" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Extract</a>
+    <a href="/admin/map-explorer" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Map Explorer</a>
+    <a href="/admin/tours" style="color:#f9a825;text-decoration:none;font-size:13px;font-weight:600;margin-right:18px;">Tours</a>
+    <a href="/admin/graph" style="color:#4fc3f7;text-decoration:none;font-size:13px;margin-right:18px;">Graph</a>
+  </nav>
+</div>
+
+<h1 style="display:none;">Tour Manager</h1>
+
+<div class="section" id="create-section">
+  <h2>Create New Tour</h2>
+  <label>Name</label>
+  <input type="text" id="new-name" placeholder="e.g. Haunted Southwark">
+  <label>Description</label>
+  <textarea id="new-desc" placeholder="Brief description of the tour..."></textarea>
+  <div class="two-col">
+    <div><label>Tour ID</label>
+      <input type="text" id="new-tour-id" placeholder="e.g. TOUR-11">
+    </div>
+    <div><label>Tour Length</label>
+      <input type="text" id="new-tour-length" placeholder="e.g. 1-2 hours">
+    </div>
+  </div>
+  <div class="two-col">
+    <div><label>Length Category</label>
+      <select id="new-length-cat"><option value="">--</option><option>Short</option><option>Medium</option><option>Long</option><option>Half Day</option></select>
+    </div>
+    <div><label>Start Region</label>
+      <input type="text" id="new-start-region" placeholder="e.g. Southwark">
+    </div>
+  </div>
+  <div class="two-col">
+    <div><label>End Region</label>
+      <input type="text" id="new-end-region" placeholder="e.g. Greenwich">
+    </div>
+    <div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="createTour()">Create Tour</button>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Existing Tours</h2>
+  <div id="tours-list"><div class="empty">Loading...</div></div>
+</div>
+
+<div class="section" id="detail-section" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 id="detail-title" style="margin:0">Tour Detail</h2>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-success btn-sm" onclick="saveTourEdits()">Save Changes</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteTour()">Delete Tour</button>
+    </div>
+  </div>
+
+  <label>Name</label>
+  <input type="text" id="edit-name">
+  <label>Description</label>
+  <textarea id="edit-desc"></textarea>
+  <div class="two-col">
+    <div><label>Tour ID</label>
+      <input type="text" id="edit-tour-id">
+    </div>
+    <div><label>Tour Length</label>
+      <input type="text" id="edit-tour-length">
+    </div>
+  </div>
+  <div class="two-col">
+    <div><label>Length Category</label>
+      <select id="edit-length-cat"><option value="">--</option><option>Short</option><option>Medium</option><option>Long</option><option>Half Day</option></select>
+    </div>
+    <div><label>Start Region</label>
+      <input type="text" id="edit-start-region">
+    </div>
+  </div>
+  <div class="two-col">
+    <div><label>End Region</label>
+      <input type="text" id="edit-end-region">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input type="checkbox" id="edit-promoted" style="width:auto;accent-color:#D4A017;transform:scale(1.3)">
+        <span style="color:#D4A017;font-weight:600;font-size:14px">Promoted</span>
+      </label>
+    </div>
+  </div>
+
+  <h2 style="margin-top:24px">Stops</h2>
+  <div id="items-list"><div class="empty">No stops yet.</div></div>
+
+  <label style="margin-top:16px">Add Place (search by name or CURIO ID)</label>
+  <input type="text" id="search-place" placeholder="Type to search..." oninput="searchPlaces()">
+  <div id="search-results" class="search-results" style="display:none"></div>
+</div>
+
+<script>
+const API = '';
+let tours = [];
+let selectedTourId = null;
+let tourItems = [];
+let searchTimeout = null;
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+async function loadTours() {
+  try {
+    tours = await api('GET', '/api/admin/tours');
+    renderTours();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function renderTours() {
+  const el = document.getElementById('tours-list');
+  if (!tours.length) { el.innerHTML = '<div class="empty">No tours created yet.</div>'; return; }
+  el.innerHTML = tours.map(t => `
+    <div class="tour-card ${t.id === selectedTourId ? 'active' : ''}" onclick="selectTour('${t.id}')">
+      <h3>${esc(t.name)}</h3>
+      <div class="meta">
+        <span>${t.item_count} stop${t.item_count !== 1 ? 's' : ''}</span>
+        <span>${t.tour_length || '---'}</span>
+        <span>${t.tour_start_region || '---'}</span>
+        ${t.tour_id ? `<span class="badge badge-purple">${esc(t.tour_id)}</span>` : ''}
+        ${t.promoted_flag ? `<span class="badge badge-gold">Promoted</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createTour() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) { toast('Name is required', 'error'); return; }
+
+  const body = {
+    name,
+    description: document.getElementById('new-desc').value.trim(),
+  };
+  const tourId = document.getElementById('new-tour-id').value.trim();
+  const tourLength = document.getElementById('new-tour-length').value.trim();
+  const lengthCat = document.getElementById('new-length-cat').value;
+  const startRegion = document.getElementById('new-start-region').value.trim();
+  const endRegion = document.getElementById('new-end-region').value.trim();
+  if (tourId) body.tour_id = tourId;
+  if (tourLength) body.tour_length = tourLength;
+  if (lengthCat) body.tour_length_category = lengthCat;
+  if (startRegion) body.tour_start_region = startRegion;
+  if (endRegion) body.tour_end_region = endRegion;
+
+  try {
+    await api('POST', '/api/admin/tours', body);
+    toast('Tour created');
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-desc').value = '';
+    document.getElementById('new-tour-id').value = '';
+    document.getElementById('new-tour-length').value = '';
+    document.getElementById('new-length-cat').value = '';
+    document.getElementById('new-start-region').value = '';
+    document.getElementById('new-end-region').value = '';
+    await loadTours();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function selectTour(id) {
+  selectedTourId = id;
+  renderTours();
+  const tour = tours.find(t => t.id === id);
+  if (!tour) return;
+
+  document.getElementById('detail-section').style.display = '';
+  document.getElementById('detail-title').textContent = tour.name;
+  document.getElementById('edit-name').value = tour.name || '';
+  document.getElementById('edit-desc').value = tour.description || '';
+  document.getElementById('edit-tour-id').value = tour.tour_id || '';
+  document.getElementById('edit-tour-length').value = tour.tour_length || '';
+  document.getElementById('edit-length-cat').value = tour.tour_length_category || '';
+  document.getElementById('edit-start-region').value = tour.tour_start_region || '';
+  document.getElementById('edit-end-region').value = tour.tour_end_region || '';
+  document.getElementById('edit-promoted').checked = !!tour.promoted_flag;
+  document.getElementById('search-place').value = '';
+  document.getElementById('search-results').style.display = 'none';
+
+  await loadItems();
+}
+
+async function loadItems() {
+  try {
+    tourItems = await api('GET', `/api/admin/tours/${selectedTourId}/items`);
+    renderItems();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function renderItems() {
+  const el = document.getElementById('items-list');
+  if (!tourItems.length) { el.innerHTML = '<div class="empty">No stops yet. Search and add places below.</div>'; return; }
+  el.innerHTML = tourItems.map((item, i) => `
+    <div class="item-row">
+      <span class="order">${i + 1}</span>
+      <span class="name">${esc(item.place_name)}</span>
+      <span class="curio-id">${esc(item.place_id)}</span>
+      <div class="actions">
+        ${i > 0 ? `<button class="move-btn" onclick="moveItem(${i}, -1)" title="Move up">&#9650;</button>` : ''}
+        ${i < tourItems.length - 1 ? `<button class="move-btn" onclick="moveItem(${i}, 1)" title="Move down">&#9660;</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="removeItem('${item.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveTourEdits() {
+  if (!selectedTourId) return;
+
+  try {
+    await api('PATCH', `/api/admin/tours/${selectedTourId}`, {
+      name: document.getElementById('edit-name').value.trim(),
+      description: document.getElementById('edit-desc').value.trim(),
+      tour_id: document.getElementById('edit-tour-id').value.trim() || null,
+      tour_length: document.getElementById('edit-tour-length').value.trim() || null,
+      tour_length_category: document.getElementById('edit-length-cat').value || null,
+      tour_start_region: document.getElementById('edit-start-region').value.trim() || null,
+      tour_end_region: document.getElementById('edit-end-region').value.trim() || null,
+      promoted_flag: document.getElementById('edit-promoted').checked,
+    });
+    toast('Tour updated');
+    await loadTours();
+    const tour = tours.find(t => t.id === selectedTourId);
+    if (tour) document.getElementById('detail-title').textContent = tour.name;
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deleteTour() {
+  if (!selectedTourId) return;
+  if (!confirm('Delete this tour and all its stops? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/api/admin/tours/${selectedTourId}`);
+    toast('Tour deleted');
+    selectedTourId = null;
+    document.getElementById('detail-section').style.display = 'none';
+    await loadTours();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function removeItem(itemId) {
+  if (!confirm('Remove this stop?')) return;
+  try {
+    await api('DELETE', `/api/admin/tours/${selectedTourId}/items/${itemId}`);
+    toast('Stop removed');
+    await loadItems();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function moveItem(index, direction) {
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= tourItems.length) return;
+  const items = [...tourItems];
+  [items[index], items[newIndex]] = [items[newIndex], items[index]];
+  const reorderData = items.map((item, i) => ({ id: item.id, order_index: i + 1 }));
+  try {
+    await api('PATCH', `/api/admin/tours/${selectedTourId}/items/reorder`, { items: reorderData });
+    tourItems = items.map((item, i) => ({ ...item, order_index: i + 1 }));
+    renderItems();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function searchPlaces() {
+  clearTimeout(searchTimeout);
+  const q = document.getElementById('search-place').value.trim();
+  const results = document.getElementById('search-results');
+  if (q.length < 2) { results.style.display = 'none'; return; }
+  searchTimeout = setTimeout(async () => {
+    try {
+      const data = await api('GET', `/api/admin/places/search?q=${encodeURIComponent(q)}`);
+      if (!data.length) {
+        results.innerHTML = '<div class="result-item" style="color:#888">No results</div>';
+      } else {
+        results.innerHTML = data.map(p => `
+          <div class="result-item" onclick="addPlace('${esc(p.curio_id)}')">
+            <span class="rid">${esc(p.curio_id)}</span>${esc(p.name)}
+          </div>
+        `).join('');
+      }
+      results.style.display = '';
+    } catch (e) { toast(e.message, 'error'); }
+  }, 300);
+}
+
+async function addPlace(curioId) {
+  if (!selectedTourId) return;
+  try {
+    await api('POST', `/api/admin/tours/${selectedTourId}/items`, { place_id: curioId });
+    toast('Stop added');
+    document.getElementById('search-place').value = '';
+    document.getElementById('search-results').style.display = 'none';
+    await loadItems();
+    await loadTours();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+loadTours();
+</script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extract Curio - Admin</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      margin-bottom: 10px;
+      color: #f9a825;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .search-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    
+    .search-prefix {
+      background: #0f3460;
+      color: #f9a825;
+      padding: 10px 15px;
+      border-radius: 6px 0 0 6px;
+      font-family: monospace;
+      font-weight: 600;
+    }
+    
+    input[type="text"] {
+      padding: 10px 15px;
+      border: 1px solid #444;
+      border-radius: 0 6px 6px 0;
+      background: #16213e;
+      color: #eee;
+      font-family: monospace;
+      font-size: 14px;
+      width: 150px;
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    button {
+      background: #f9a825;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #ffc107;
+    }
+    
+    button:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+    
+    .copy-btn {
+      background: #2196f3;
+      font-size: 13px;
+      padding: 8px 16px;
+    }
+    
+    .copy-btn:hover {
+      background: #42a5f5;
+    }
+    
+    .loading {
+      color: #888;
+      font-style: italic;
+      padding: 20px;
+    }
+    
+    .error {
+      color: #ef5350;
+      padding: 10px;
+      background: rgba(239, 83, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .success {
+      color: #4caf50;
+      padding: 10px;
+      background: rgba(76, 175, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .back-link {
+      color: #4fc3f7;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .nav-links {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 20px;
+    }
+    
+    #initialState {
+      color: #888;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .result-section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .result-header h2 {
+      color: #f9a825;
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    .json-output {
+      width: 100%;
+      min-height: 400px;
+      padding: 12px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #1a1a2e;
+      color: #eee;
+      font-family: monospace;
+      font-size: 13px;
+      resize: vertical;
+      line-height: 1.5;
+      white-space: pre;
+      tab-size: 2;
+    }
+    
+    .json-output:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    .place-name-display {
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    
+    .place-id-display {
+      color: #888;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-links">
+    <a href="/admin/places" class="back-link">&larr; Back to Places List</a>
+    <a href="/admin/curio" class="back-link">Edit Curio</a>
+    <a href="/admin/graph" class="back-link">Graph</a>
+  </div>
+  
+  <h1>Extract Curio</h1>
+  <p class="subtitle">Enter a curio ID to extract all place data as JSON</p>
+  
+  <div class="search-container">
+    <span class="search-prefix">CURIO-</span>
+    <input type="text" id="curioIdInput" placeholder="12345" />
+    <button id="searchBtn" onclick="extractCurio()">Extract</button>
+  </div>
+  
+  <div id="error" class="error" style="display: none;"></div>
+  <div id="success" class="success" style="display: none;"></div>
+  <div id="loading" class="loading" style="display: none;">Extracting curio data...</div>
+  
+  <div id="initialState">
+    Enter a curio ID number above to extract its full place record
+  </div>
+  
+  <div id="content" style="display: none;">
+    <div class="result-section">
+      <div class="result-header">
+        <div>
+          <div class="place-name-display" id="placeName"></div>
+          <div class="place-id-display" id="curioIdDisplay"></div>
+        </div>
+        <button class="copy-btn" onclick="copyJson()">Copy JSON</button>
+      </div>
+      <textarea class="json-output" id="jsonOutput" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('curioIdInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        extractCurio();
+      }
+    });
+    
+    async function extractCurio() {
+      const input = document.getElementById('curioIdInput');
+      const curioNumber = input.value.trim();
+      
+      if (!curioNumber) {
+        showError('Please enter a curio ID number');
+        return;
+      }
+      
+      const curioId = `CURIO-${curioNumber}`;
+      
+      hideMessages();
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('initialState').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      
+      try {
+        const response = await fetch(`/api/admin/places/extract/${encodeURIComponent(curioId)}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error(`Curio "${curioId}" not found`);
+          }
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        document.getElementById('placeName').textContent = data.name || 'Unnamed Place';
+        document.getElementById('curioIdDisplay').textContent = data.curio_id || curioId;
+        document.getElementById('jsonOutput').value = JSON.stringify(data, null, 2);
+        
+        document.getElementById('content').style.display = 'block';
+      } catch (err) {
+        showError(err.message);
+        document.getElementById('initialState').style.display = 'block';
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+    
+    function copyJson() {
+      const output = document.getElementById('jsonOutput');
+      output.select();
+      output.setSelectionRange(0, 99999);
+      
+      navigator.clipboard.writeText(output.value).then(() => {
+        showSuccess('JSON copied to clipboard!');
+      }).catch(() => {
+        document.execCommand('copy');
+        showSuccess('JSON copied to clipboard!');
+      });
+    }
+    
+    function showError(message) {
+      const el = document.getElementById('error');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('success').style.display = 'none';
+    }
+    
+    function showSuccess(message) {
+      const el = document.getElementById('success');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 3000);
+    }
+    
+    function hideMessages() {
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('success').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

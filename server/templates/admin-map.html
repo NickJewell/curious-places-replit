@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Places Admin - Create New Places</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    
+    .header {
+      padding: 15px 20px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    
+    h1 {
+      color: #f9a825;
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+    }
+    
+    .nav-links {
+      margin-top: 10px;
+    }
+    
+    .nav-links a {
+      color: #4fc3f7;
+      text-decoration: none;
+      margin-right: 20px;
+      font-size: 14px;
+    }
+    
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+    
+    .container {
+      display: flex;
+      height: calc(100vh - 100px);
+    }
+    
+    #map {
+      flex: 1;
+      min-height: 500px;
+    }
+    
+    .sidebar {
+      width: 400px;
+      background: #16213e;
+      padding: 20px;
+      overflow-y: auto;
+      border-left: 1px solid #2a2a4a;
+    }
+    
+    .sidebar h2 {
+      color: #f9a825;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    
+    .instructions {
+      background: rgba(79, 195, 247, 0.1);
+      border: 1px solid #4fc3f7;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .nearby-places {
+      margin-bottom: 20px;
+    }
+    
+    .nearby-places h3 {
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .place-item {
+      background: #1a1a2e;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #2a2a4a;
+    }
+    
+    .place-item .name {
+      color: #eee;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .place-item .id {
+      font-family: monospace;
+      font-size: 12px;
+      color: #888;
+    }
+    
+    .place-item .distance {
+      font-size: 12px;
+      color: #4fc3f7;
+      margin-top: 4px;
+    }
+    
+    .no-nearby {
+      color: #4caf50;
+      font-style: italic;
+      font-size: 14px;
+    }
+    
+    .form-section {
+      display: none;
+    }
+    
+    .form-section.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #eee;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #f9a825;
+    }
+    
+    input[readonly] {
+      background: #0f3460;
+      color: #aaa;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    .btn-primary {
+      background: #4caf50;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-primary:hover {
+      background: #66bb6a;
+    }
+    
+    .btn-secondary {
+      background: #555;
+      color: #eee;
+    }
+    
+    .btn-secondary:hover {
+      background: #666;
+    }
+    
+    button:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+    
+    .error {
+      color: #ef5350;
+      padding: 10px;
+      background: rgba(239, 83, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    
+    .success {
+      color: #4caf50;
+      padding: 10px;
+      background: rgba(76, 175, 80, 0.1);
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    
+    .loading {
+      color: #888;
+      font-style: italic;
+      font-size: 14px;
+    }
+    
+    .search-box {
+      background: #1a1a2e;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #2a2a4a;
+    }
+    
+    .search-box label {
+      margin-bottom: 8px;
+    }
+    
+    .click-marker {
+      background: #f9a825;
+      border: 3px solid #1a1a2e;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+    }
+    
+    .existing-marker {
+      background: #4fc3f7;
+      border: 2px solid #1a1a2e;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Create New Places</h1>
+    <p class="subtitle">Click on the map to check for nearby places and add new ones</p>
+    <div class="nav-links">
+      <a href="/admin/places">&larr; Back to Places List</a>
+      <a href="/admin/curio">Curio Editor</a>
+      <a href="/admin/map-explorer">Map Explorer</a>
+      <a href="/admin/graph">Graph</a>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div id="map"></div>
+    
+    <div class="sidebar">
+      <div id="instructions" class="instructions">
+        <strong>How to use:</strong><br>
+        1. Zoom into the area where you want to add a place<br>
+        2. Click on the exact location<br>
+        3. Review nearby places (within 250m)<br>
+        4. If the place is new, fill in the details and save
+      </div>
+      
+      <div class="search-box">
+        <label>Go to coordinates (lat lon)</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="coord-input" placeholder="51.5087  -0.1348" style="flex: 1;" />
+          <button type="button" class="btn-secondary" onclick="goToCoords()">Go</button>
+        </div>
+      </div>
+      
+      <div id="error" class="error" style="display: none;"></div>
+      <div id="success" class="success" style="display: none;"></div>
+      
+      <div id="nearby-section" style="display: none;">
+        <div class="nearby-places">
+          <h3>Nearby Places (within 250m)</h3>
+          <div id="nearby-list"></div>
+        </div>
+        
+        <div id="form-section" class="form-section">
+          <h2>Add New Place</h2>
+          <form id="place-form">
+            <div class="form-group">
+              <label>Curio ID</label>
+              <input type="text" id="curio_id" readonly />
+            </div>
+            
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="name" required placeholder="Enter place name" />
+            </div>
+            
+            <div class="form-group">
+              <label>Detail Overview</label>
+              <textarea id="detail_overview" placeholder="Enter a detailed description of this place..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Latitude</label>
+              <input type="text" id="lat" readonly />
+            </div>
+            
+            <div class="form-group">
+              <label>Longitude</label>
+              <input type="text" id="lon" readonly />
+            </div>
+            
+            <div class="form-group">
+              <label>Plus Code</label>
+              <input type="text" id="plus_code" readonly />
+            </div>
+            
+            <div class="button-group">
+              <button type="button" class="btn-secondary" onclick="cancelForm()">Cancel</button>
+              <button type="submit" class="btn-primary" id="save-btn">Save Place</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let map;
+    let clickMarker;
+    let nearbyMarkers = [];
+    let selectedLat = null;
+    let selectedLon = null;
+    
+    function initMap() {
+      map = L.map('map').setView([51.5074, -0.1278], 12);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 22,
+        maxNativeZoom: 19
+      }).addTo(map);
+      
+      map.on('click', onMapClick);
+      
+      document.getElementById('coord-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') goToCoords();
+      });
+    }
+    
+    function goToCoords() {
+      const input = document.getElementById('coord-input').value.trim();
+      if (!input) return;
+      
+      const parts = input.split(/[\s,\t]+/).filter(p => p);
+      if (parts.length >= 2) {
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        
+        if (!isNaN(lat) && !isNaN(lon)) {
+          map.setView([lat, lon], 18);
+          return;
+        }
+      }
+      
+      showError('Invalid coordinates. Use format: 51.5087 -0.1348');
+    }
+    
+    async function onMapClick(e) {
+      selectedLat = e.latlng.lat;
+      selectedLon = e.latlng.lng;
+      
+      clearMarkers();
+      hideMessages();
+      
+      const clickIcon = L.divIcon({
+        className: 'click-marker',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      
+      clickMarker = L.marker([selectedLat, selectedLon], { icon: clickIcon }).addTo(map);
+      
+      document.getElementById('nearby-section').style.display = 'block';
+      document.getElementById('nearby-list').innerHTML = '<span class="loading">Searching nearby places...</span>';
+      document.getElementById('form-section').classList.remove('active');
+      
+      try {
+        const response = await fetch(`/api/admin/places/nearby?lat=${selectedLat}&lon=${selectedLon}&radius=250`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch nearby places');
+        }
+        
+        const data = await response.json();
+        displayNearbyPlaces(data.places || []);
+        
+        const nextIdResponse = await fetch('/api/admin/places/next-curio-id');
+        if (nextIdResponse.ok) {
+          const idData = await nextIdResponse.json();
+          document.getElementById('curio_id').value = idData.nextCurioId || 'CURIO-???';
+        }
+        
+        document.getElementById('lat').value = selectedLat.toFixed(7);
+        document.getElementById('lon').value = selectedLon.toFixed(7);
+        document.getElementById('plus_code').value = encodePlusCode(selectedLat, selectedLon);
+        document.getElementById('name').value = '';
+        document.getElementById('detail_overview').value = '';
+        
+      } catch (err) {
+        showError('Error searching nearby places: ' + err.message);
+      }
+    }
+    
+    function displayNearbyPlaces(places) {
+      const container = document.getElementById('nearby-list');
+      
+      if (places.length === 0) {
+        container.innerHTML = '<p class="no-nearby">No existing places within 250m. This appears to be a new location!</p>';
+        document.getElementById('form-section').classList.add('active');
+      } else {
+        container.innerHTML = places.map(place => `
+          <div class="place-item">
+            <div class="name">${escapeHtml(place.name || 'Unnamed')}</div>
+            <div class="id">${escapeHtml(place.curio_id || '-')}</div>
+            <div class="distance">${place.distance?.toFixed(1) || '?'}m away</div>
+          </div>
+        `).join('');
+        
+        const existingIcon = L.divIcon({
+          className: 'existing-marker',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        
+        places.forEach(place => {
+          if (place.latitude && place.longitude) {
+            const marker = L.marker([place.latitude, place.longitude], { icon: existingIcon })
+              .bindPopup(`<b>${escapeHtml(place.name || 'Unnamed')}</b><br>${escapeHtml(place.curio_id || '')}`)
+              .addTo(map);
+            nearbyMarkers.push(marker);
+          }
+        });
+        
+        document.getElementById('form-section').classList.add('active');
+      }
+    }
+    
+    function clearMarkers() {
+      if (clickMarker) {
+        map.removeLayer(clickMarker);
+        clickMarker = null;
+      }
+      nearbyMarkers.forEach(marker => map.removeLayer(marker));
+      nearbyMarkers = [];
+    }
+    
+    function cancelForm() {
+      clearMarkers();
+      document.getElementById('nearby-section').style.display = 'none';
+      document.getElementById('form-section').classList.remove('active');
+      selectedLat = null;
+      selectedLon = null;
+      hideMessages();
+    }
+    
+    function hideMessages() {
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('success').style.display = 'none';
+    }
+    
+    function showError(message) {
+      const el = document.getElementById('error');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('success').style.display = 'none';
+    }
+    
+    function showSuccess(message) {
+      const el = document.getElementById('success');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+    }
+    
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+    
+    function encodePlusCode(lat, lon) {
+      const ALPHABET = '23456789CFGHJMPQRVWX';
+      const GRID_SIZE = 5;
+      
+      lat = lat + 90;
+      lon = lon + 180;
+      
+      let code = '';
+      let latPrecision = 20;
+      let lonPrecision = 20;
+      
+      for (let i = 0; i < 5; i++) {
+        const latDigit = Math.floor(lat / latPrecision);
+        const lonDigit = Math.floor(lon / lonPrecision);
+        
+        lat -= latDigit * latPrecision;
+        lon -= lonDigit * lonPrecision;
+        
+        code += ALPHABET[latDigit];
+        code += ALPHABET[lonDigit];
+        
+        latPrecision /= 20;
+        lonPrecision /= 20;
+        
+        if (i === 3) {
+          code += '+';
+        }
+      }
+      
+      return code;
+    }
+    
+    document.getElementById('place-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const saveBtn = document.getElementById('save-btn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      hideMessages();
+      
+      const placeData = {
+        curio_id: document.getElementById('curio_id').value,
+        name: document.getElementById('name').value.trim(),
+        detail_overview: document.getElementById('detail_overview').value.trim() || null,
+        latitude: parseFloat(document.getElementById('lat').value),
+        longitude: parseFloat(document.getElementById('lon').value),
+        plus_code: document.getElementById('plus_code').value
+      };
+      
+      if (!placeData.name) {
+        showError('Name is required');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Place';
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/admin/places', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(placeData)
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to save place');
+        }
+        
+        const result = await response.json();
+        showSuccess(`Place "${placeData.name}" saved successfully with ID ${placeData.curio_id}!`);
+        
+        setTimeout(() => {
+          cancelForm();
+        }, 2000);
+        
+      } catch (err) {
+        showError('Error saving place: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Place';
+      }
+    });
+    
+    initMap();
+  </script>
+</body>
+</html>

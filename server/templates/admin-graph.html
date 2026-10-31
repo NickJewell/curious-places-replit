@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curio Explorer - Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 10px 20px;
+      background: #fff;
+      border-bottom: 1px solid #dde3ec;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    h1 { color: #e67e00; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; flex-shrink: 0; }
+    .nav-links { display: flex; flex-wrap: wrap; }
+    .nav-links a { color: #2b7fd4; text-decoration: none; font-size: 13px; margin-right: 18px; }
+    .nav-links a:hover { text-decoration: underline; }
+    .nav-links a.active { color: #e67e00; font-weight: 600; pointer-events: none; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      padding: 9px 20px;
+      background: #fff;
+      border-bottom: 1px solid #dde3ec;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .search-wrap { position: relative; flex-shrink: 0; }
+    .search-input {
+      background: #f7f9fc; border: 1px solid #c8d4e3; border-radius: 6px;
+      padding: 7px 34px 7px 12px; color: #333; font-size: 13px; width: 280px;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { outline: none; border-color: #2b7fd4; background: #fff; }
+    .search-input::placeholder { color: #aab; }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #aab; cursor: pointer; font-size: 16px;
+      display: none; line-height: 1; padding: 2px;
+    }
+    .search-clear:hover { color: #666; }
+    .search-clear.visible { display: block; }
+
+    .autocomplete {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff; border: 1px solid #c8d4e3; border-radius: 7px;
+      z-index: 300; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      display: none;
+    }
+    .autocomplete.open { display: block; }
+    .autocomplete-item {
+      padding: 9px 14px; cursor: pointer; font-size: 13px; color: #333;
+      border-bottom: 1px solid #eef1f6; transition: background 0.1s;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover, .autocomplete-item.ac-active { background: #eef4fd; }
+    .autocomplete-item .item-id { font-size: 11px; color: #2b7fd4; margin-top: 2px; }
+    .autocomplete-empty { padding: 10px 14px; font-size: 13px; color: #aab; font-style: italic; }
+
+    .btn {
+      padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: background 0.15s; white-space: nowrap;
+    }
+    .btn-reset { background: #eef1f6; color: #556; border: 1px solid #c8d4e3; }
+    .btn-reset:hover { background: #dde3ec; }
+    .btn-primary {
+      background: #e8833a; color: #fff; border: none;
+      padding: 5px 11px; font-size: 12px; font-weight: 600;
+      border-radius: 5px; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+    }
+    .btn-primary:hover { background: #cf6f28; }
+
+    .radius-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .radius-label { font-size: 12px; color: #667; white-space: nowrap; }
+    .radius-val { font-size: 12px; font-weight: 600; color: #2b7fd4; min-width: 42px; text-align: right; white-space: nowrap; }
+    input[type=range].radius-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 120px; height: 4px; border-radius: 2px;
+      background: #c8d4e3; outline: none; cursor: pointer;
+    }
+    input[type=range].radius-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #2b7fd4; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    input[type=range].radius-slider::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #2b7fd4; cursor: pointer; border: none;
+    }
+
+    /* ── 3-Column Layout ── */
+    .panels {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .panel-left {
+      width: 270px;
+      flex-shrink: 0;
+      border-right: 1px solid #dde3ec;
+    }
+
+    .panel-centre {
+      flex: 1;
+      border-right: 1px solid #dde3ec;
+      background: #f8fafc;
+    }
+
+    .panel-right {
+      width: 280px;
+      flex-shrink: 0;
+    }
+
+    .panel-header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid #eef1f6;
+      flex-shrink: 0;
+    }
+    .panel-header h2 {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #9aabb8;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+    }
+    .panel-body::-webkit-scrollbar { width: 5px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
+    .panel-body::-webkit-scrollbar-thumb { background: #d0dae5; border-radius: 3px; }
+
+    /* ── Empty / loading states ── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; min-height: 120px; gap: 6px; color: #bcc8d6; text-align: center;
+      padding: 24px;
+    }
+    .empty-state-icon { font-size: 28px; margin-bottom: 4px; }
+    .empty-state-title { font-size: 13px; font-weight: 600; color: #b0bdd0; }
+    .empty-state-sub   { font-size: 12px; color: #c8d4e3; line-height: 1.4; }
+
+    .spinner-inline {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(43,127,212,0.2); border-top-color: #2b7fd4;
+      border-radius: 50%; animation: spin 0.65s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row { display: flex; align-items: center; gap: 8px; color: #889; font-size: 13px; padding: 20px 0; }
+
+    /* ── Left panel: curio info ── */
+    .curio-name {
+      font-size: 20px; font-weight: 700; color: #1a2533; line-height: 1.25;
+      margin-bottom: 6px;
+    }
+    .curio-id {
+      font-size: 11px; color: #2b7fd4; font-family: monospace;
+      margin-bottom: 12px; display: block;
+      text-decoration: none;
+    }
+    .curio-id:hover { text-decoration: underline; }
+    .curio-overview {
+      font-size: 13px; color: #556; line-height: 1.6;
+      border-top: 1px solid #eef1f6; padding-top: 12px;
+    }
+    .curio-overview-loading { font-size: 12px; color: #aab; font-style: italic; }
+
+    /* ── Centre panel: attribute list ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #9aabb8;
+      margin-bottom: 8px; margin-top: 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    .attr-list { display: flex; flex-direction: column; gap: 3px; }
+
+    .attr-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 6px;
+      cursor: pointer; transition: background 0.1s;
+      border: 1px solid transparent;
+    }
+    .attr-row:hover { background: #eef4fd; }
+    .attr-row.selected {
+      background: #fff4ec; border-color: #f0c09a;
+    }
+    .attr-row.highlighted {
+      background: #fff4ec;
+    }
+    .attr-key {
+      font-size: 12px; color: #667; flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .attr-val {
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 10px;
+      background: #eef1f6; color: #445;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .attr-row.selected .attr-key { color: #b35a10; font-weight: 600; }
+    .attr-row.selected .attr-val { background: #e8833a; color: #fff; }
+    .attr-row.highlighted .attr-val { background: #e8833a; color: #fff; }
+    .attr-row.highlighted .attr-key { color: #b35a10; font-weight: 600; }
+    .attr-count {
+      font-size: 10px; font-weight: 600; color: #8899aa;
+      background: #eef1f6; border-radius: 8px; padding: 1px 6px;
+      white-space: nowrap; flex-shrink: 0; margin-left: 4px;
+    }
+    .attr-count.rare { color: #5db87a; background: #edf9f2; }
+    .attr-row.selected .attr-count { background: rgba(255,255,255,0.25); color: #fff3; }
+    .attr-row.highlighted .attr-count { background: rgba(255,255,255,0.25); color: #fff3; }
+
+    .attr-count {
+      font-size: 10px; font-weight: 600;
+      color: #9aabb8; flex-shrink: 0;
+      white-space: nowrap; margin-left: 2px;
+    }
+    .attr-count.rare {
+      color: #e05c2a; background: #fef0e8;
+      border-radius: 8px; padding: 1px 5px;
+    }
+
+    .section-divider {
+      border: none; border-top: 1px solid #e4eaf2;
+      margin: 20px 0 14px;
+    }
+
+    .rhs-section-title {
+      font-size: 14px; font-weight: 700; color: #1a2533;
+      margin-bottom: 12px; line-height: 1.3;
+    }
+
+    /* ── Right panel: nearby curios ── */
+    .curio-card {
+      border: 1px solid #e4eaf2; border-radius: 8px;
+      padding: 11px 13px; margin-bottom: 8px;
+      background: #fff; transition: border-color 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .curio-card:hover { border-color: #b8ceea; box-shadow: 0 2px 8px rgba(43,127,212,0.08); }
+    .curio-card.selected { border-color: #e8833a; box-shadow: 0 2px 8px rgba(232,131,58,0.15); }
+
+    .card-name { font-size: 13px; font-weight: 700; color: #1a2533; margin-bottom: 3px; line-height: 1.3; }
+    .card-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .card-id   { font-size: 10px; color: #2b7fd4; font-family: monospace; }
+    .card-dist {
+      font-size: 10px; font-weight: 600; color: #5db87a;
+      background: #edf9f2; border-radius: 8px; padding: 1px 6px;
+    }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .card-edit-link {
+      font-size: 11px; color: #2b7fd4; text-decoration: none; font-weight: 600;
+    }
+    .card-edit-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Curio Explorer</h1>
+  <div class="nav-links">
+    <a href="/admin/places">Places</a>
+    <a href="/admin/map">Add Place</a>
+    <a href="/admin/curio">Edit Curio</a>
+    <a href="/admin/extract">Extract</a>
+    <a href="/admin/map-explorer">Map Explorer</a>
+    <a href="/admin/tours">Tours</a>
+    <a href="/admin/graph" class="active">Explorer</a>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <input type="text" id="search" class="search-input"
+      placeholder="Search by name or curio ID…"
+      autocomplete="off"
+      oninput="onSearchInput(this.value)"
+      onkeydown="onSearchKey(event)" />
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Clear">&#x2715;</button>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+  <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+  <div class="radius-wrap">
+    <span class="radius-label">Nearby:</span>
+    <input type="range" id="radius-slider" class="radius-slider"
+      min="1" max="50" value="20"
+      oninput="onRadiusInput(this.value)"
+      onchange="onRadiusChange(this.value)" />
+    <span class="radius-val" id="radius-val">2.0 km</span>
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- ── Left panel: curio info ── -->
+  <div class="panel panel-left">
+    <div class="panel-header"><h2>Selected Curio</h2></div>
+    <div class="panel-body" id="left-body">
+      <div class="empty-state">
+        <div class="empty-state-icon">&#x1F50D;</div>
+        <div class="empty-state-title">No curio selected</div>
+        <div class="empty-state-sub">Search for a place above to begin exploring</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Centre panel: attributes ── -->
+  <div class="panel panel-centre">
+    <div class="panel-header"><h2>Attributes</h2></div>
+    <div class="panel-body" id="centre-body">
+      <div class="empty-state">
+        <div class="empty-state-title">Attributes will appear here</div>
+        <div class="empty-state-sub">Select a curio to see its attributes, then click one to find nearby matches</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right panel: nearby matches ── -->
+  <div class="panel panel-right">
+    <div class="panel-header"><h2>Nearby Matches</h2></div>
+    <div class="panel-body" id="right-body">
+      <div class="empty-state">
+        <div class="empty-state-title">No attribute selected</div>
+        <div class="empty-state-sub">Click an attribute in the centre panel to see nearby curios that share it</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+let mainCurio       = null;   // { id, curioId, label, overview, lat, lon }
+let mainAttrs       = [];     // [{id, label, key, value, count}]
+let selectedAttrId  = null;   // id of the clicked attribute
+let selectedRhsId   = null;   // id of the clicked right-panel curio
+let rhsAttrs        = [];     // attrs of the selected RHS curio
+let rhsCurios       = [];     // curios returned for current attr search
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Radius slider
+// ─────────────────────────────────────────────────────────────────────────────
+function getRadiusKm() {
+  return parseFloat(document.getElementById('radius-slider').value) * 0.1;
+}
+
+function formatRadius(km) {
+  if (km < 1) return Math.round(km * 1000) + ' m';
+  return km.toFixed(1) + ' km';
+}
+
+function onRadiusInput(step) {
+  document.getElementById('radius-val').textContent = formatRadius(parseFloat(step) * 0.1);
+}
+
+let radiusTimer = null;
+function onRadiusChange(step) {
+  onRadiusInput(step);
+  if (selectedAttrId && mainCurio) {
+    clearTimeout(radiusTimer);
+    radiusTimer = setTimeout(() => fetchNearby(selectedAttrId), 300);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+function formatDistKm(d) {
+  if (!d && d !== 0) return '';
+  if (d < 1) return Math.round(d * 1000) + ' m';
+  return d.toFixed(2) + ' km';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Left panel — render curio info
+// ─────────────────────────────────────────────────────────────────────────────
+function renderLeftPanel() {
+  const el = document.getElementById('left-body');
+  if (!mainCurio) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">&#x1F50D;</div>
+      <div class="empty-state-title">No curio selected</div>
+      <div class="empty-state-sub">Search for a place above to begin exploring</div>
+    </div>`;
+    return;
+  }
+
+  const editUrl = '/admin/curio?id=' + encodeURIComponent(mainCurio.curioId);
+  el.innerHTML = `
+    <div class="curio-name">${escapeHtml(mainCurio.label)}</div>
+    <a class="curio-id" href="${editUrl}" target="_blank">${escapeHtml(mainCurio.curioId)}</a>
+    <div class="curio-overview" id="overview-text">
+      <span class="curio-overview-loading">Loading overview…</span>
+    </div>
+  `;
+
+  // Async: fetch detail_overview from Supabase
+  fetchOverview(mainCurio.curioId);
+}
+
+async function fetchOverview(curioId) {
+  try {
+    const res  = await fetch('/api/map/places/' + encodeURIComponent(curioId) + '/detail');
+    const data = await res.json();
+    const el   = document.getElementById('overview-text');
+    if (!el) return;
+    if (data.detail_overview) {
+      el.textContent = data.detail_overview;
+    } else if (mainCurio && mainCurio.overview) {
+      el.textContent = mainCurio.overview;
+    } else {
+      el.innerHTML = '<span class="curio-overview-loading">No overview available.</span>';
+    }
+  } catch (_) {
+    const el = document.getElementById('overview-text');
+    if (el && mainCurio && mainCurio.overview) el.textContent = mainCurio.overview;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Centre panel — render attributes
+// ─────────────────────────────────────────────────────────────────────────────
+function renderCentrePanel() {
+  const el = document.getElementById('centre-body');
+  if (!mainCurio || mainAttrs.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-title">No attributes loaded</div>
+      <div class="empty-state-sub">Select a curio to see its attributes</div>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="section-label">Attributes for ${escapeHtml(mainCurio.label)}</div>
+    <div class="attr-list" id="main-attr-list">`;
+
+  for (const a of mainAttrs) {
+    const sel   = a.id === selectedAttrId ? ' selected' : '';
+    const cnt   = a.count || 0;
+    const rare  = cnt > 0 && cnt < 20 ? ' rare' : '';
+    const badge = cnt > 0 ? `<span class="attr-count${rare}" title="${cnt} curios share this attribute">\u00d7${cnt}</span>` : '';
+    html += `<div class="attr-row${sel}" data-attr-id="${escapeHtml(a.id)}" onclick="onAttrClick(this.dataset.attrId)">
+      <span class="attr-key">${escapeHtml(a.key)}</span>
+      <span class="attr-val">${escapeHtml(a.value)}</span>
+      ${badge}
+    </div>`;
+  }
+  html += '</div>';
+
+  if (selectedRhsId && rhsAttrs.length > 0) {
+    const rhsCurio = rhsCurios.find(c => c.id === selectedRhsId);
+    const rhsName  = rhsCurio ? rhsCurio.label : 'Selected curio';
+
+    html += `<hr class="section-divider">
+      <div class="rhs-section-title">${escapeHtml(rhsName)}</div>
+      <div class="attr-list">`;
+
+    for (const a of rhsAttrs) {
+      const isMatch = a.id === selectedAttrId;
+      html += `<div class="attr-row${isMatch ? ' highlighted' : ''}">
+        <span class="attr-key">${escapeHtml(a.key)}</span>
+        <span class="attr-val">${escapeHtml(a.value)}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Right panel — render nearby curio cards
+// ─────────────────────────────────────────────────────────────────────────────
+function renderRightPanel() {
+  const el = document.getElementById('right-body');
+  if (!selectedAttrId) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-title">No attribute selected</div>
+      <div class="empty-state-sub">Click an attribute in the centre panel to find nearby curios that share it</div>
+    </div>`;
+    return;
+  }
+
+  if (rhsCurios.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-title">No nearby matches</div>
+      <div class="empty-state-sub">No other curios within ${formatRadius(getRadiusKm())} share this attribute</div>
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  for (const c of rhsCurios) {
+    const isSel = c.id === selectedRhsId;
+    const dist  = c.distKm != null ? formatDistKm(c.distKm) : '';
+    html += `<div class="curio-card${isSel ? ' selected' : ''}"
+        data-place-id="${escapeHtml(c.id)}"
+        data-curio-id="${escapeHtml(c.curioId)}"
+        onclick="onRhsCurioClick(this.dataset.curioId, this)">
+      <div class="card-name">${escapeHtml(c.label)}</div>
+      <div class="card-meta">
+        <span class="card-id">${escapeHtml(c.curioId)}</span>
+        ${dist ? `<span class="card-dist">${escapeHtml(dist)}</span>` : ''}
+      </div>
+      <div class="card-footer">
+        <a class="card-edit-link"
+          href="/admin/curio?id=${encodeURIComponent(c.curioId)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          onclick="event.stopPropagation()">Edit</a>
+        <button class="btn-primary"
+          onclick="event.stopPropagation(); setAsMain(this.closest('.curio-card').dataset.curioId)">Set as main</button>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Attribute click — fetch nearby curios sharing this attr
+// ─────────────────────────────────────────────────────────────────────────────
+async function onAttrClick(attrId) {
+  if (!mainCurio) return;
+  selectedAttrId = attrId;
+  selectedRhsId  = null;
+  rhsAttrs       = [];
+  rhsCurios      = [];
+  renderCentrePanel();
+  renderRightPanel();
+  await fetchNearby(attrId);
+}
+
+async function fetchNearby(attrId) {
+  if (!mainCurio) return;
+  selectedAttrId = attrId;
+
+  // Show loading in right panel
+  const rEl = document.getElementById('right-body');
+  rEl.innerHTML = `<div class="loading-row"><span class="spinner-inline"></span> Finding nearby curios…</div>`;
+
+  try {
+    const url = '/api/admin/graph/similar-nearby?attrId=' + encodeURIComponent(attrId) +
+      '&lat=' + mainCurio.lat + '&lon=' + mainCurio.lon +
+      '&excludeId=' + encodeURIComponent(mainCurio.id) +
+      '&km=' + getRadiusKm();
+    const res  = await fetch(url);
+    const data = await res.json();
+    rhsCurios = data.places || [];
+
+    // If previously selected RHS curio is no longer in results, clear
+    if (selectedRhsId && !rhsCurios.find(c => c.id === selectedRhsId)) {
+      selectedRhsId = null;
+      rhsAttrs = [];
+    }
+
+    renderCentrePanel();
+    renderRightPanel();
+  } catch (err) {
+    rEl.innerHTML = `<div class="empty-state"><div class="empty-state-title">Error loading matches</div><div class="empty-state-sub">${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RHS curio click — navigate to that curio as the main curio
+// ─────────────────────────────────────────────────────────────────────────────
+async function onRhsCurioClick(curioId, cardEl) {
+  // Brief visual feedback: mark card as selected before panels reload
+  document.querySelectorAll('.curio-card').forEach(c => c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+
+  await loadCurio(curioId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Set as main — make a RHS curio the new main curio
+// ─────────────────────────────────────────────────────────────────────────────
+async function setAsMain(curioId) {
+  await loadCurio(curioId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Load curio
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadCurio(query) {
+  // Show loading in left + centre panels immediately
+  document.getElementById('left-body').innerHTML =
+    `<div class="loading-row"><span class="spinner-inline"></span> Loading curio…</div>`;
+  document.getElementById('centre-body').innerHTML =
+    `<div class="loading-row"><span class="spinner-inline"></span> Loading attributes…</div>`;
+
+  // Reset state
+  mainCurio      = null;
+  mainAttrs      = [];
+  selectedAttrId = null;
+  selectedRhsId  = null;
+  rhsAttrs       = [];
+  rhsCurios      = [];
+  renderRightPanel();
+
+  try {
+    const res  = await fetch('/api/admin/graph/curio?q=' + encodeURIComponent(query));
+    const data = await res.json();
+
+    if (!data.found) {
+      document.getElementById('left-body').innerHTML =
+        `<div class="empty-state"><div class="empty-state-title">Not found</div><div class="empty-state-sub">No curio matching "${escapeHtml(query)}"</div></div>`;
+      document.getElementById('centre-body').innerHTML =
+        `<div class="empty-state"><div class="empty-state-title">No attributes</div></div>`;
+      return;
+    }
+
+    mainCurio = data.place;
+    mainAttrs = (data.attrs || []).slice().sort((a, b) => a.key.localeCompare(b.key));
+
+    renderLeftPanel();
+    renderCentrePanel();
+  } catch (err) {
+    document.getElementById('left-body').innerHTML =
+      `<div class="empty-state"><div class="empty-state-title">Error</div><div class="empty-state-sub">${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reset
+// ─────────────────────────────────────────────────────────────────────────────
+function resetAll() {
+  mainCurio      = null;
+  mainAttrs      = [];
+  selectedAttrId = null;
+  selectedRhsId  = null;
+  rhsAttrs       = [];
+  rhsCurios      = [];
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  closeAutocomplete();
+  renderLeftPanel();
+  renderCentrePanel();
+  renderRightPanel();
+}
+
+function clearSearch() {
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  closeAutocomplete();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Autocomplete search
+// ─────────────────────────────────────────────────────────────────────────────
+let searchTimer = null;
+let acResults   = [];
+let acIndex     = -1;
+
+function onSearchInput(val) {
+  document.getElementById('search-clear').classList.toggle('visible', val.length > 0);
+  clearTimeout(searchTimer);
+  if (!val.trim()) { closeAutocomplete(); return; }
+  searchTimer = setTimeout(() => doAutocomplete(val.trim()), 220);
+}
+
+function onSearchKey(ev) {
+  const ac = document.getElementById('autocomplete');
+  if (!ac.classList.contains('open')) {
+    if (ev.key === 'Enter') {
+      const val = document.getElementById('search').value.trim();
+      if (val) { closeAutocomplete(); loadCurio(val); }
+    }
+    return;
+  }
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    acIndex = Math.min(acIndex + 1, acResults.length - 1);
+    renderAcHighlight();
+  } else if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    renderAcHighlight();
+  } else if (ev.key === 'Enter') {
+    ev.preventDefault();
+    if (acIndex >= 0 && acResults[acIndex]) selectAcResult(acResults[acIndex]);
+    else {
+      const val = document.getElementById('search').value.trim();
+      if (val) { closeAutocomplete(); loadCurio(val); }
+    }
+  } else if (ev.key === 'Escape') {
+    closeAutocomplete();
+  }
+}
+
+async function doAutocomplete(q) {
+  try {
+    const res  = await fetch('/api/admin/graph/search?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    acResults = data.results || [];
+    acIndex   = -1;
+    renderAutocomplete();
+  } catch (_) { closeAutocomplete(); }
+}
+
+function renderAutocomplete() {
+  const ac = document.getElementById('autocomplete');
+  if (!acResults.length) {
+    ac.innerHTML = '<div class="autocomplete-empty">No results</div>';
+    ac.classList.add('open');
+    return;
+  }
+  ac.innerHTML = acResults.map((r, i) =>
+    `<div class="autocomplete-item${i === acIndex ? ' ac-active' : ''}"
+         onclick="selectAcResult(acResults[${i}])">
+       ${escapeHtml(r.label)}
+       <div class="item-id">${escapeHtml(r.curioId || r.id)}</div>
+     </div>`
+  ).join('');
+  ac.classList.add('open');
+}
+
+function renderAcHighlight() {
+  const items = document.querySelectorAll('.autocomplete-item');
+  items.forEach((el, i) => el.classList.toggle('ac-active', i === acIndex));
+}
+
+function selectAcResult(r) {
+  document.getElementById('search').value = r.label || '';
+  document.getElementById('search-clear').classList.add('visible');
+  closeAutocomplete();
+  loadCurio(r.curioId || r.id || r.label);
+}
+
+function closeAutocomplete() {
+  document.getElementById('autocomplete').classList.remove('open');
+  acResults = []; acIndex = -1;
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('autocomplete').contains(e.target) &&
+      !document.getElementById('search').contains(e.target)) {
+    closeAutocomplete();
+  }
+});
+</script>
+</body>
+</html>
